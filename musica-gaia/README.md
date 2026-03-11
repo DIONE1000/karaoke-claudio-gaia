@@ -1,16 +1,38 @@
-# React + Vite
+# 🎤 Karaokê Cláudio Gaia
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Sistema de gerenciamento de músicas desenvolvido para facilitar a organização e seleção de repertório para karaokês.
 
-Currently, two official plugins are available:
+## 🚀 Funcionalidades
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Cadastro de Músicas:** Adicione título e artista rapidamente.
+- **Edição em Tempo Real:** Altere informações de músicas já cadastradas.
+- **Exclusão:** Remova músicas da lista com um clique.
+- **Feedback Visual (Toasts):** Notificações coloridas para cada ação (Verde para sucesso, Azul para edição, Vermelho para exclusão).
+- **Interface Responsiva:** Design limpo e moderno utilizando Tailwind CSS.
 
-## React Compiler
+## 🛠️ Tecnologias Utilizadas
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- [React](https://reactjs.org/)
+- [Vite](https://vitejs.dev/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [Lucide React](https://lucide.dev/) (Ícones)
+- [Framer Motion](https://www.framer.com/motion/) (Opcional, se você usou para as animações dos popups)
 
-## Expanding the ESLint configuration
+## 📦 Como rodar o projeto
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+1. Clone o repositório:
+   ```bash
+   git clone git@github.com:DIONE1000/karaoke-claudio-gaia.git
+   Entre na pasta:
+   ```
+
+Bash
+cd karaoke-claudio-gaia
+Instale as dependências:
+
+Bash
+npm install
+Inicie o servidor de desenvolvimento:
+
+Bash
+npm run dev
