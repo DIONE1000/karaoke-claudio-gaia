@@ -1,16 +1,112 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
+import { Check } from "lucide-react";
+import { FormularioCadastro } from "./components/FormularioCadastro/FormularioCadastro";
+import { BarraFiltros } from "./components/BarraFiltros/BarraFiltros";
+import { TabelaMusicas } from "./components/TabelaMusicas/TabelaMusicas";
+
+// ─── Componente de Filtro Dropdown ─────────────────────────────────────────
+// NOTE: This component is now used by BarraFiltros, not directly by App.
+// It remains here for completeness as it was part of the original file.
+// In a real refactor, it would likely be moved to its own file.
+import { useRef, useEffect } from "react"; // Added back for FiltroDropdown
 import {
   Mic2,
   Save,
   Search,
   Trash2,
   Edit2,
-  Check,
   X,
-  Disc3,
   Music4,
-} from "lucide-react";
+  Link2,
+  ExternalLink,
+  ChevronDown,
+  SlidersHorizontal,
+} from "lucide-react"; // Added back for FiltroDropdown and other components
 
+function FiltroDropdown({ label, opcoes, valorAtivo, onSelecionar, onLimpar }) {
+  const [aberto, setAberto] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setAberto(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const ativo = !!valorAtivo;
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setAberto((v) => !v)}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+          ativo
+            ? "bg-red-600 text-white border-red-500 shadow-lg shadow-red-900/40"
+            : "bg-slate-800/70 text-slate-400 border-slate-700 hover:border-slate-500 hover:text-slate-200"
+        }`}
+      >
+        {ativo ? (
+          <>
+            <span className="max-w-[90px] truncate">{valorAtivo}</span>
+            <span
+              onClick={(e) => {
+                e.stopPropagation();
+                onLimpar();
+              }}
+              className="ml-1 hover:text-white/60 transition-colors"
+              title="Limpar filtro"
+            >
+              <X size={11} />
+            </span>
+          </>
+        ) : (
+          <>
+            {label}
+            <ChevronDown
+              size={12}
+              className={`transition-transform ${aberto ? "rotate-180" : ""}`}
+            />
+          </>
+        )}
+      </button>
+
+      {aberto && (
+        <div className="absolute top-full mt-2 left-0 z-30 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden min-w-[180px] max-h-64 overflow-y-auto">
+          <div className="px-3 pt-3 pb-1 text-[10px] font-black uppercase tracking-widest text-slate-500">
+            {label}
+          </div>
+          {opcoes.length === 0 ? (
+            <p className="px-4 py-3 text-xs text-slate-600">Sem opções</p>
+          ) : (
+            opcoes.map((op) => (
+              <button
+                key={op}
+                type="button"
+                onClick={() => {
+                  onSelecionar(op === valorAtivo ? null : op);
+                  setAberto(false);
+                }}
+                className={`w-full text-left px-4 py-2.5 text-sm transition-colors border-b border-slate-800/50 last:border-0 flex items-center justify-between gap-2 ${
+                  op === valorAtivo
+                    ? "bg-red-600/20 text-red-400 font-bold"
+                    : "hover:bg-slate-800/60 text-slate-300"
+                }`}
+              >
+                {op}
+                {op === valorAtivo && <Check size={13} className="text-red-400 shrink-0" />}
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── App Principal ──────────────────────────────────────────────────────────
 function App() {
   // --- ESTADOS ---
   const [formData, setFormData] = useState({
@@ -18,7 +114,11 @@ function App() {
     cantor: "",
     local: "",
     versao: "",
+    link: "",
+    linkTipo: "cantor",
+    linkAtivo: false,
   });
+  
   const [registros, setRegistros] = useState([
     {
       id: 1,
@@ -26,6 +126,9 @@ function App() {
       cantor: "Chitãozinho & Xororó",
       local: "P01-N12",
       versao: "Original",
+      link: "",
+      linkTipo: "cantor",
+      linkAtivo: false,
     },
     {
       id: 2,
@@ -33,28 +136,47 @@ function App() {
       cantor: "Bruno & Marrone",
       local: "P05-N20",
       versao: "Forró",
+      link: "https://www.youtube.com/watch?v=example",
+      linkTipo: "musica",
+      linkAtivo: true,
     },
   ]);
+
   const [busca, setBusca] = useState("");
   const [editId, setEditId] = useState(null);
   const [editFormData, setEditFormData] = useState({});
 
-  // ESTADO DO POPUP DINÂMICO
+  // FILTROS DROPDOWN
+  const [filtros, setFiltros] = useState({
+    musica: null,
+    cantor: null,
+    local: null,
+    versao: null,
+  });
+
+  // TOAST
   const [toast, setToast] = useState({ visivel: false, mensagem: "", cor: "" });
 
-  // --- FUNÇÕES DE AUXÍLIO ---
+  // --- OPÇÕES ÚNICAS PARA OS DROPDOWNS E AUTOCOMPLETE ---
+  const opcoesMusica = useMemo(() => [...new Set(registros.map((r) => r.musica))].sort(), [registros]);
+  const opcoesCantor = useMemo(() => [...new Set(registros.map((r) => r.cantor))].sort(), [registros]);
+  const opcoesLocal  = useMemo(() => [...new Set(registros.map((r) => r.local))].sort(), [registros]);
+  const opcoesVersao = useMemo(() => [...new Set(registros.map((r) => r.versao).filter(Boolean))].sort(), [registros]);
+
+  // --- FUNÇÕES AUXILIARES ---
   const formatarTexto = (txt) => {
     if (!txt) return "";
     return txt.trim().charAt(0).toUpperCase() + txt.slice(1);
   };
-
   const formatarLocal = (txt) => txt.trim().toUpperCase();
 
-  // FUNÇÃO PARA DISPARAR O POPUP
   const dispararToast = (mensagem, cor = "bg-emerald-600") => {
     setToast({ visivel: true, mensagem, cor });
-    setTimeout(() => setToast({ ...toast, visivel: false }), 3000);
+    setTimeout(() => setToast({ visivel: false, mensagem: "", cor: "" }), 3000);
   };
+
+  const temFiltroAtivo = Object.values(filtros).some(Boolean);
+  const limparTodosFiltros = () => setFiltros({ musica: null, cantor: null, local: null, versao: null });
 
   // --- AÇÕES ---
   const handleSalvarNovo = (e) => {
@@ -68,11 +190,14 @@ function App() {
       cantor: formatarTexto(formData.cantor),
       local: formatarLocal(formData.local),
       versao: formatarTexto(formData.versao),
+      link: formData.linkAtivo ? formData.link.trim() : "",
+      linkTipo: formData.linkTipo,
+      linkAtivo: formData.linkAtivo && formData.link.trim() !== "",
     };
 
     setRegistros([novoRegistro, ...registros]);
-    setFormData({ musica: "", cantor: "", local: "", versao: "" });
-    dispararToast("Música cadastrada com sucesso!", "bg-emerald-600"); // VERDE
+    setFormData({ musica: "", cantor: "", local: "", versao: "", link: "", linkTipo: "cantor", linkAtivo: false });
+    dispararToast("Música cadastrada com sucesso!", "bg-emerald-600");
   };
 
   const confirmarEdicao = () => {
@@ -82,26 +207,43 @@ function App() {
       cantor: formatarTexto(editFormData.cantor),
       local: formatarLocal(editFormData.local),
       versao: formatarTexto(editFormData.versao),
+      link: editFormData.linkAtivo ? (editFormData.link || "").trim() : "",
+      linkTipo: editFormData.linkTipo || "cantor",
+      linkAtivo: editFormData.linkAtivo && (editFormData.link || "").trim() !== "",
     };
-
     setRegistros(registros.map((r) => (r.id === editId ? registroEditado : r)));
     setEditId(null);
-    dispararToast("Registro atualizado!", "bg-blue-600"); // AZUL
+    dispararToast("Registro atualizado!", "bg-blue-600");
   };
 
   const excluirRegistro = (id) => {
     if (window.confirm("Apagar este registro permanentemente?")) {
       setRegistros(registros.filter((r) => r.id !== id));
-      dispararToast("Registro removido do banco!", "bg-amber-600"); // LARANJA/AMBAR
+      dispararToast("Registro removido do banco!", "bg-amber-600");
     }
   };
 
-  const registrosFiltrados = registros.filter(
-    (r) =>
-      r.musica.toLowerCase().includes(busca.toLowerCase()) ||
-      r.cantor.toLowerCase().includes(busca.toLowerCase()) ||
-      r.local.toLowerCase().includes(busca.toLowerCase()),
-  );
+  // --- FILTRAGEM ---
+  const registrosFiltrados = registros.filter((r) => {
+    // 1. Filtro de texto
+    const termo = busca.toLowerCase();
+    if (termo) {
+      const passaBusca =
+        r.musica.toLowerCase().includes(termo) ||
+        r.cantor.toLowerCase().includes(termo) ||
+        r.local.toLowerCase().includes(termo) ||
+        (r.versao || "").toLowerCase().includes(termo);
+      if (!passaBusca) return false;
+    }
+
+    // 2. Filtros dropdown
+    if (filtros.musica && r.musica !== filtros.musica) return false;
+    if (filtros.cantor && r.cantor !== filtros.cantor) return false;
+    if (filtros.local  && r.local  !== filtros.local)  return false;
+    if (filtros.versao && r.versao !== filtros.versao) return false;
+
+    return true;
+  });
 
   return (
     <div className="min-h-screen bg-[#020617] text-slate-100 p-4 md:p-8 font-sans relative overflow-x-hidden">
@@ -115,225 +257,60 @@ function App() {
         </h1>
       </header>
 
-      <main className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[350px,1fr] gap-8">
-        {/* FORMULÁRIO */}
-        <section className="bg-slate-900/40 p-6 rounded-3xl border border-slate-800 h-fit backdrop-blur-sm shadow-xl">
-          <h2 className="text-xs font-bold text-red-500 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-            <Music4 size={18} /> Cadastrar Música
-          </h2>
-
-          <form onSubmit={handleSalvarNovo} className="space-y-4">
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">
-                Música
-              </label>
-              <input
-                type="text"
-                placeholder="Nome da canção"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-red-600 outline-none transition-all placeholder:text-slate-700"
-                value={formData.musica}
-                onChange={(e) =>
-                  setFormData({ ...formData, musica: e.target.value })
-                }
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">
-                Cantor / Banda
-              </label>
-              <input
-                type="text"
-                placeholder="Artista original"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-red-600 outline-none transition-all placeholder:text-slate-700"
-                value={formData.cantor}
-                onChange={(e) =>
-                  setFormData({ ...formData, cantor: e.target.value })
-                }
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">
-                  Local
-                </label>
-                <input
-                  type="text"
-                  placeholder="Pasta-Nº"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-red-600 outline-none transition-all placeholder:text-slate-700"
-                  value={formData.local}
-                  onChange={(e) =>
-                    setFormData({ ...formData, local: e.target.value })
-                  }
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">
-                  Versão
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ex: Forró"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:border-red-600 outline-none transition-all placeholder:text-slate-700"
-                  value={formData.versao}
-                  onChange={(e) =>
-                    setFormData({ ...formData, versao: e.target.value })
-                  }
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 rounded-xl mt-4 flex items-center justify-center gap-2 transition-all shadow-lg shadow-red-900/40 active:scale-95"
-            >
-              <Save size={18} /> SALVAR REGISTRO
-            </button>
-          </form>
+      <main className="max-w-7xl mx-auto flex flex-col gap-8">
+        
+        {/* FORMULÁRIO COMPONENTIZADO */}
+        <section className="bg-slate-900/40 p-6 rounded-3xl border border-slate-800 backdrop-blur-sm shadow-xl relative z-20">
+          <FormularioCadastro 
+            formData={formData}
+            setFormData={setFormData}
+            handleSalvarNovo={handleSalvarNovo}
+            opcoesMusica={opcoesMusica}
+            opcoesCantor={opcoesCantor}
+            opcoesLocal={opcoesLocal}
+            opcoesVersao={opcoesVersao}
+          />
         </section>
 
-        {/* BUSCA E TABELA */}
-        <section className="space-y-4">
-          <div className="relative group">
-            <Search
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-red-500 transition-colors"
-              size={20}
-            />
-            <input
-              type="text"
-              placeholder="Pesquisar por música, cantor ou pasta..."
-              className="w-full bg-slate-900/30 border border-slate-800 rounded-2xl pl-12 pr-4 py-5 outline-none focus:border-red-600 transition-all text-lg"
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-            />
-          </div>
+        <section className="space-y-4 min-w-0">
+          {/* BARRA DE FILTROS COMPONENTIZADA */}
+          <BarraFiltros 
+            busca={busca}
+            setBusca={setBusca}
+            filtros={filtros}
+            setFiltros={setFiltros}
+            temFiltroAtivo={temFiltroAtivo}
+            limparTodosFiltros={limparTodosFiltros}
+            registrosFiltrados={registrosFiltrados}
+            registrosLength={registros.length}
+            opcoesMusica={opcoesMusica}
+            opcoesCantor={opcoesCantor}
+            opcoesLocal={opcoesLocal}
+            opcoesVersao={opcoesVersao}
+          />
 
-          <div className="bg-slate-900/20 border border-slate-800 rounded-3xl overflow-hidden shadow-xl">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="bg-slate-900/60 text-[10px] uppercase font-black tracking-widest text-slate-500 border-b border-slate-800">
-                  <th className="px-6 py-4">Música</th>
-                  <th className="px-6 py-4">Cantor</th>
-                  <th className="px-6 py-4">Local</th>
-                  <th className="px-6 py-4 text-center">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/40">
-                {registrosFiltrados.map((item) => (
-                  <tr
-                    key={item.id}
-                    className="hover:bg-slate-800/30 transition-colors group"
-                  >
-                    <td className="px-6 py-4">
-                      {editId === item.id ? (
-                        <input
-                          className="bg-slate-950 border border-slate-700 rounded px-2 py-1 w-full text-white outline-none focus:border-red-600"
-                          value={editFormData.musica}
-                          onChange={(e) =>
-                            setEditFormData({
-                              ...editFormData,
-                              musica: e.target.value,
-                            })
-                          }
-                        />
-                      ) : (
-                        <span className="font-bold text-slate-100">
-                          {item.musica}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-slate-400 text-sm">
-                      {editId === item.id ? (
-                        <input
-                          className="bg-slate-950 border border-slate-700 rounded px-2 py-1 w-full text-white outline-none focus:border-red-600"
-                          value={editFormData.cantor}
-                          onChange={(e) =>
-                            setEditFormData({
-                              ...editFormData,
-                              cantor: e.target.value,
-                            })
-                          }
-                        />
-                      ) : (
-                        item.cantor
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      {editId === item.id ? (
-                        <input
-                          className="bg-slate-950 border border-slate-700 rounded px-2 py-1 w-20 text-white outline-none focus:border-red-600"
-                          value={editFormData.local}
-                          onChange={(e) =>
-                            setEditFormData({
-                              ...editFormData,
-                              local: e.target.value,
-                            })
-                          }
-                        />
-                      ) : (
-                        <span className="text-red-500 font-mono bg-red-500/10 px-2 py-1 rounded border border-red-500/20 text-xs">
-                          {item.local}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex justify-center gap-2">
-                        {editId === item.id ? (
-                          <>
-                            <button
-                              onClick={confirmarEdicao}
-                              className="p-2 text-emerald-400 hover:bg-emerald-400/10 rounded-lg"
-                            >
-                              <Check size={18} />
-                            </button>
-                            <button
-                              onClick={() => setEditId(null)}
-                              className="p-2 text-slate-400 hover:bg-slate-400/10 rounded-lg"
-                            >
-                              <X size={18} />
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => {
-                                setEditId(item.id);
-                                setEditFormData(item);
-                              }}
-                              className="p-2 text-slate-600 hover:text-red-500 transition-colors"
-                            >
-                              <Edit2 size={16} />
-                            </button>
-                            <button
-                              onClick={() => excluirRegistro(item.id)}
-                              className="p-2 text-slate-600 hover:text-red-600 transition-colors"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {/* TABELA COMPONENTIZADA */}
+          <TabelaMusicas 
+            registrosFiltrados={registrosFiltrados}
+            editId={editId}
+            setEditId={setEditId}
+            editFormData={editFormData}
+            setEditFormData={setEditFormData}
+            confirmarEdicao={confirmarEdicao}
+            excluirRegistro={excluirRegistro}
+            busca={busca}
+            temFiltroAtivo={temFiltroAtivo}
+            limparTodosFiltros={limparTodosFiltros}
+            setBusca={setBusca}
+          />
         </section>
       </main>
 
-      {/* POPUP DINÂMICO (TOAST) */}
+      {/* TOAST */}
       {toast.visivel && (
-        <div
-          className={`fixed bottom-10 right-10 z-50 animate-toast ${toast.cor} text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 border border-white/10 backdrop-blur-md`}
-        >
-          <div className="bg-white/20 rounded-full p-1">
-            <Check size={20} strokeWidth={3} />
-          </div>
-          <span className="font-bold text-sm tracking-tight">
-            {toast.mensagem}
-          </span>
+        <div className={`fixed bottom-10 right-10 z-50 animate-toast ${toast.cor} text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 border border-white/10 backdrop-blur-md`}>
+          <div className="bg-white/20 rounded-full p-1"><Check size={20} strokeWidth={3} /></div>
+          <span className="font-bold text-sm tracking-tight">{toast.mensagem}</span>
         </div>
       )}
     </div>
