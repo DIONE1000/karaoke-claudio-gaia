@@ -84,7 +84,7 @@ export function FormularioCadastro({
   }, []);
 
   const selecionarSugestaoMusica = (nomeMusica, buscarRegistro) => {
-    const registro = buscarRegistro(nomeMusica);
+    const registro = buscarRegistro ? buscarRegistro(nomeMusica) : null;
     if (registro) {
       setFormData({
         ...formData,
