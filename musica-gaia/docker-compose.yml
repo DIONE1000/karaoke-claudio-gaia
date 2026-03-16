@@ -1,14 +1,16 @@
-version: '3.8'
+version: "3.8"
 
 services:
   db:
     image: mysql:8.0
     container_name: musicagaia_db
+    restart: always
+    # O arquivo .env na raiz agora preenche estas variáveis automaticamente
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: musicagaia
-      MYSQL_USER: admin
-      MYSQL_PASSWORD: adminpassword
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
     ports:
       - "3307:3306"
     volumes:
@@ -18,13 +20,16 @@ services:
     build: ./backend
     container_name: musicagaia_backend
     restart: always
-    command: python manage.py runserver 0.0.0.0:8000
+    # Comando para rodar migrations e ligar o servidor
+    command: >
+      sh -c "python manage.py migrate && 
+             python manage.py runserver 0.0.0.0:8000"
     volumes:
       - ./backend:/app
     ports:
       - "8000:8000"
     env_file:
-      - ./backend/.env
+      - .env # <--- AJUSTADO: Agora aponta para a raiz
     depends_on:
       - db
 
