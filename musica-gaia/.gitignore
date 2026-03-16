@@ -14,8 +14,10 @@ venv/
 .venv/
 env/
 .env
-.minha_env/
 
+.minha_env/
+.env
+__pycache__/
 # Node
 node_modules/
 dist/
