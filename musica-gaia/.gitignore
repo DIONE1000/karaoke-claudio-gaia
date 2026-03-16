@@ -14,7 +14,7 @@ venv/
 .venv/
 env/
 .env
-.minha_env
+.minha_env/
 
 # Node
 node_modules/
