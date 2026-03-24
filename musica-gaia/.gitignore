@@ -10,13 +10,9 @@ lerna-debug.log*
 __pycache__/
 *.py[cod]
 *$py.class
-venv/
-.venv/
-env/
-.env
 
 .minha_env/
-.env
+
 __pycache__/
 # Node
 node_modules/
